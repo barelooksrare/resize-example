@@ -4,11 +4,22 @@ declare_id!("9WddkrNSnwUWWuk4zkyQg7eHBVHsaei1avP9YgsSQhZw");
 
 #[program]
 pub mod resize_example {
-    use anchor_lang::system_program::{self, Transfer};
+    use anchor_lang::system_program::{self, Transfer, CreateAccount};
 
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, size: u32) -> Result<()> {
+        let lamports = Rent::get()?.minimum_balance(size as usize);
+
+        system_program::create_account(
+            CpiContext::new_with_signer(ctx.accounts.system_program.to_account_info(), CreateAccount{
+            from: ctx.accounts.payer.to_account_info(),
+            to: ctx.accounts.resize_account.to_account_info(),
+        }, &[&[&[*ctx.bumps.get("resize_account").unwrap()]]]), lamports, size as u64, &id())?;
+        let mut data = &mut **ctx.accounts.resize_account.try_borrow_mut_data()?;
+        AccountThing{
+            my_data: Vec::new()
+        }.try_serialize(&mut data)?;
         Ok(())
     }
 
@@ -53,8 +64,9 @@ pub struct AccountThing{
 pub struct Initialize<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(init, payer=payer, space=12, seeds=[], bump)]
-    pub resize_account: Account<'info, AccountThing>,
+    /// CHECK: we're manually initializing this account
+    #[account(mut, seeds=[], bump)]
+    pub resize_account: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 

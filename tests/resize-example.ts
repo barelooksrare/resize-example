@@ -12,12 +12,13 @@ describe("resize-example", () => {
   var [account] = anchor.web3.PublicKey.findProgramAddressSync([], program.programId);
   it("Is initialized!", async () => {
     // Add your test here.
-    const tx = await program.methods.initialize().accounts({
+    const tx = await program.methods.initialize(100).accounts({
       resizeAccount: account,
     }).rpc();
     const size = await program.account.accountThing.getAccountInfo(account);
-    assert.equal(size.data.length, 12);
+    assert.equal(size.data.length, 100);
   });
+
   it("Grows", async () => {
     const tx = await program.methods.resize(10249).accounts({
       resizeAccount: account
@@ -26,6 +27,7 @@ describe("resize-example", () => {
     const size = await program.account.accountThing.getAccountInfo(account);
     assert.equal(size.data.length, 10249);
   });
+  
   it("Shrinks", async () => {
     const tx = await program.methods.resize(18).accounts({
       resizeAccount: account
